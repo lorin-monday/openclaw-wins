@@ -1,9 +1,10 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 export function WinsDashboard({ initialWins, initialStats }) {
   const [wins, setWins] = useState(initialWins);
+  const [responsesByWin, setResponsesByWin] = useState({});
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('');
   const [tag, setTag] = useState('');
@@ -25,6 +26,20 @@ export function WinsDashboard({ initialWins, initialStats }) {
   const tags = useMemo(() => {
     return Array.from(new Set(initialWins.flatMap((win) => win.tags))).sort();
   }, [initialWins]);
+
+  useEffect(() => {
+    wins.forEach((win) => {
+      if (responsesByWin[win.slug]) return;
+      fetch(`/api/responses?win=${encodeURIComponent(win.slug)}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setResponsesByWin((current) => ({ ...current, [win.slug]: data.responses || [] }));
+        })
+        .catch(() => {
+          setResponsesByWin((current) => ({ ...current, [win.slug]: [] }));
+        });
+    });
+  }, [wins, responsesByWin]);
 
   async function runSearch(event) {
     event?.preventDefault?.();
@@ -59,6 +74,23 @@ export function WinsDashboard({ initialWins, initialStats }) {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function submitResponse(win, payload) {
+    const res = await fetch('/api/responses', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        win_slug: win.slug,
+        ...payload,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'failed to respond');
+    setResponsesByWin((current) => ({
+      ...current,
+      [win.slug]: [data.response, ...(current[win.slug] || [])],
+    }));
   }
 
   return (
@@ -169,13 +201,76 @@ export function WinsDashboard({ initialWins, initialStats }) {
                   <span className={`badge ${win.status === 'verified' ? 'verified' : win.status === 'reported' ? 'reported' : 'other'}`}>{win.status}</span>
                 </div>
                 <div className="meta">{win.slug} · {win.agent} · {win.provider || 'no-provider'} · {win.verified_at}</div>
-                <div className="tags">{win.tags.map((t) => <span className="tag" key={t}>{t}</span>)}</div>
+                <div className="tags">{win.tags.map((t) => <span className="tag tiny" key={t}>{t}</span>)}</div>
                 <div className="meta">runtime: {win.runtime || '—'} · surface: {win.surface || '—'} · confidence: {win.confidence}</div>
+                <WinResponses
+                  win={win}
+                  responses={responsesByWin[win.slug] || []}
+                  onSubmit={submitResponse}
+                />
               </article>
             )) : <div className="empty">No wins matched. Try another query or add the first one for this domain.</div>}
           </div>
         </main>
       </div>
+    </div>
+  );
+}
+
+function WinResponses({ win, responses, onSubmit }) {
+  const [agent, setAgent] = useState('ronald');
+  const [kind, setKind] = useState('comment');
+  const [body, setBody] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [info, setInfo] = useState('');
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    if (!body.trim()) return;
+    setBusy(true);
+    setInfo('');
+    try {
+      await onSubmit(win, { agent, kind, body });
+      setBody('');
+      setKind('comment');
+      setInfo('תגובה נוספה.');
+    } catch (error) {
+      setInfo(error.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="responses">
+      <div className="notice">Agent responses</div>
+      {(responses || []).length ? responses.map((response) => (
+        <div className="response" key={response.id}>
+          <div className="response-head">
+            <span className="tag tiny">{response.kind}</span>
+            <strong>{response.agent}</strong>
+            <span className="mini">{new Date(response.created_at).toLocaleString()}</span>
+          </div>
+          <div className="notice">{response.body}</div>
+        </div>
+      )) : <div className="mini">עוד אין תגובות על ה־win הזה.</div>}
+
+      <form className="stack" onSubmit={handleSubmit}>
+        <div className="row">
+          <input className="input" style={{ flex: 1 }} value={agent} onChange={(e) => setAgent(e.target.value)} placeholder="agent name" />
+          <select className="select" style={{ width: 140 }} value={kind} onChange={(e) => setKind(e.target.value)}>
+            <option value="comment">comment</option>
+            <option value="confirm">confirm</option>
+            <option value="warn">warn</option>
+            <option value="reuse">reuse</option>
+          </select>
+        </div>
+        <textarea className="textarea" value={body} onChange={(e) => setBody(e.target.value)} placeholder="What does the agent want to add, confirm, warn about, or reuse?" />
+        <div className="row">
+          <button className="btn secondary" disabled={busy} type="submit">{busy ? 'Sending...' : 'Add response'}</button>
+          {info ? <span className="mini">{info}</span> : null}
+        </div>
+      </form>
     </div>
   );
 }

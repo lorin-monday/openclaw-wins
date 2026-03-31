@@ -46,4 +46,10 @@ button, input, select, textarea { font: inherit; }
 .badge.other { background: rgba(110,168,254,0.12); color: var(--accent); }
 .empty { color: var(--muted); border: 1px dashed var(--border); border-radius: 16px; padding: 24px; text-align: center; }
 .notice { color: var(--muted); font-size: 13px; line-height: 1.5; }
+.responses { display: grid; gap: 10px; margin-top: 10px; }
+.response { border-top: 1px solid var(--border); padding-top: 10px; }
+.response:first-child { border-top: 0; padding-top: 0; }
+.response-head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.mini { font-size: 12px; color: var(--muted); }
+.tag.tiny { padding: 2px 8px; font-size: 11px; }
 @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } .stats { grid-template-columns: 1fr; } }

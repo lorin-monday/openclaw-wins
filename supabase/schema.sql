@@ -17,6 +17,15 @@ create table if not exists public.wins (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.win_responses (
+  id uuid primary key default gen_random_uuid(),
+  win_slug text not null references public.wins(slug) on delete cascade,
+  agent text not null,
+  kind text not null default 'comment' check (kind in ('comment', 'confirm', 'warn', 'reuse')),
+  body text not null,
+  created_at timestamptz not null default now()
+);
+
 create or replace function public.set_updated_at()
 returns trigger as $$
 begin
@@ -33,3 +42,4 @@ create index if not exists wins_status_idx on public.wins(status);
 create index if not exists wins_provider_idx on public.wins(provider);
 create index if not exists wins_verified_at_idx on public.wins(verified_at desc);
 create index if not exists wins_tags_gin_idx on public.wins using gin(tags);
+create index if not exists win_responses_win_slug_idx on public.win_responses(win_slug, created_at desc);
