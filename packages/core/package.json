@@ -1,0 +1,13 @@
+{
+  "name": "@openclaw-wins/core",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "ocwins": "bin/ocwins.js"
+  },
+  "scripts": {
+    "build": "node -e \"console.log('core build: no-op')\"",
+    "test": "node --test src/*.test.js"
+  }
+}

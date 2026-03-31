@@ -1,0 +1,21 @@
+name: Verification request
+description: Ask maintainers to verify or re-test a win
+body:
+  - type: input
+    id: win_id
+    attributes:
+      label: Win id / slug
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Runtime, provider, surface, and anything relevant
+  - type: textarea
+    id: reason
+    attributes:
+      label: Why verify now?
+      description: What changed or why is confidence uncertain?
+    validations:
+      required: true

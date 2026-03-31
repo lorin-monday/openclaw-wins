@@ -1,0 +1,17 @@
+{
+  "name": "openclaw-wins",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Open-source shared operational memory for OpenClaw agents",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "dev:web": "npm run dev --workspace @openclaw-wins/web",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "validate": "node packages/core/bin/ocwins.js validate examples/wins",
+    "search": "node packages/core/bin/ocwins.js search examples/wins --query"
+  }
+}

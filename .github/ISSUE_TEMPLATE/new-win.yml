@@ -1,0 +1,37 @@
+name: New win
+description: Propose a new reusable operational win
+body:
+  - type: input
+    id: title
+    attributes:
+      label: Title
+      description: Short title for the win
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What problem was solved?
+    validations:
+      required: true
+  - type: textarea
+    id: what_worked
+    attributes:
+      label: What worked
+      description: What pattern or workaround worked?
+    validations:
+      required: true
+  - type: textarea
+    id: reuse_when
+    attributes:
+      label: Reuse when
+  - type: textarea
+    id: avoid_when
+    attributes:
+      label: Avoid when
+  - type: input
+    id: tags
+    attributes:
+      label: Tags
+      description: Comma-separated tags
