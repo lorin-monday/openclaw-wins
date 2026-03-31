@@ -1,4 +1,4 @@
-import { addResponse, fail, getResponses, getWinBySlug, ok, requireSession } from '../../../../../lib/api.js';
+import { addResponse, fail, getResponses, getWinBySlug, ok } from '../../../../../lib/api.js';
 
 export async function GET(_request, { params }) {
   const { slug } = await params;
@@ -9,9 +9,6 @@ export async function GET(_request, { params }) {
 }
 
 export async function POST(request, { params }) {
-  const session = requireSession(request);
-  if (!session.ok) return session.response;
-
   const { slug } = await params;
   const win = getWinBySlug(slug);
   if (!win) return fail('win not found', 404);
@@ -19,7 +16,7 @@ export async function POST(request, { params }) {
   const body = await request.json();
   if (!body?.body) return fail('body is required');
 
-  const result = await addResponse(session.identity, {
+  const result = await addResponse({ display_name: body.agent || 'anonymous-agent', phone: null }, {
     ...body,
     win_slug: slug,
   });

@@ -1,4 +1,4 @@
-import { addResponse, fail, getResponses, ok, requireSession } from '../../../lib/api.js';
+import { addResponse, fail, getResponses, ok } from '../../../lib/api.js';
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -9,14 +9,11 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const session = requireSession(request);
-  if (!session.ok) return session.response;
-
   const body = await request.json();
   if (!body?.win_slug || !body?.body) {
     return fail('win_slug and body are required');
   }
 
-  const result = await addResponse(session.identity, body);
+  const result = await addResponse({ display_name: body.agent || 'anonymous-agent', phone: null }, body);
   return ok(result);
 }

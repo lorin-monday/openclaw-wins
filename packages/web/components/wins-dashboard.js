@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from 'react';
 export function WinsDashboard({ initialWins, initialStats }) {
   const [wins, setWins] = useState(initialWins);
   const [responsesByWin, setResponsesByWin] = useState({});
-  const [session, setSession] = useState({ loading: true, authenticated: false, identity: null });
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('');
   const [tag, setTag] = useState('');
@@ -27,13 +26,6 @@ export function WinsDashboard({ initialWins, initialStats }) {
   const tags = useMemo(() => {
     return Array.from(new Set(initialWins.flatMap((win) => win.tags))).sort();
   }, [initialWins]);
-
-  useEffect(() => {
-    fetch('/api/auth/session')
-      .then((res) => res.json())
-      .then((data) => setSession({ loading: false, authenticated: !!data.authenticated, identity: data.identity || null }))
-      .catch(() => setSession({ loading: false, authenticated: false, identity: null }));
-  }, []);
 
   useEffect(() => {
     wins.forEach((win) => {
@@ -117,10 +109,6 @@ export function WinsDashboard({ initialWins, initialStats }) {
         <div className="stat"><div className="num">{initialStats.reported}</div><div className="txt">reported</div></div>
       </section>
 
-      <div className="card" style={{ marginTop: 18 }}>
-        <AuthPanel session={session} onSessionChange={setSession} />
-      </div>
-
       <div className="grid" style={{ marginTop: 18 }}>
         <aside className="stack">
           <div className="card">
@@ -189,8 +177,7 @@ export function WinsDashboard({ initialWins, initialStats }) {
                 <label className="label">Avoid when</label>
                 <textarea className="textarea" value={form.avoidWhen} onChange={(e) => setForm({ ...form, avoidWhen: e.target.value })} />
               </div>
-              <button className="btn" disabled={submitting || !session.authenticated} type="submit">{submitting ? 'Creating...' : 'Create win'}</button>
-              {!session.authenticated ? <div className="notice">Authenticate with your WhatsApp number to create wins.</div> : null}
+              <button className="btn" disabled={submitting} type="submit">{submitting ? 'Creating...' : 'Create win'}</button>
               {message ? <div className="notice">{message}</div> : null}
             </form>
           </div>
@@ -220,7 +207,6 @@ export function WinsDashboard({ initialWins, initialStats }) {
                   win={win}
                   responses={responsesByWin[win.slug] || []}
                   onSubmit={submitResponse}
-                  session={session}
                 />
               </article>
             )) : <div className="empty">No wins matched. Try another query or add the first one for this domain.</div>}
@@ -231,101 +217,7 @@ export function WinsDashboard({ initialWins, initialStats }) {
   );
 }
 
-function AuthPanel({ session, onSessionChange }) {
-  const [phone, setPhone] = useState('');
-  const [code, setCode] = useState('');
-  const [info, setInfo] = useState('');
-  const [busy, setBusy] = useState(false);
-
-  async function requestCode(event) {
-    event.preventDefault();
-    setBusy(true);
-    setInfo('');
-    try {
-      const res = await fetch('/api/auth/request-code', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ phone }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'failed to send code');
-      setInfo(data.fallback ? 'Code was generated in fallback mode. WhatsApp delivery bridge is not configured yet.' : 'Code sent to WhatsApp.');
-    } catch (error) {
-      setInfo(error.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function verifyCode(event) {
-    event.preventDefault();
-    setBusy(true);
-    setInfo('');
-    try {
-      const res = await fetch('/api/auth/verify-code', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ phone, code }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'verification failed');
-      onSessionChange({ loading: false, authenticated: true, identity: data.identity });
-      setInfo('Authenticated. You can now post and respond.');
-      setCode('');
-    } catch (error) {
-      setInfo(error.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function logout() {
-    await fetch('/api/auth/session', { method: 'DELETE' });
-    onSessionChange({ loading: false, authenticated: false, identity: null });
-    setInfo('Logged out.');
-  }
-
-  if (session.loading) return <div className="notice">Checking session…</div>;
-
-  if (session.authenticated) {
-    return (
-      <div className="stack">
-        <div className="row" style={{ justifyContent: 'space-between' }}>
-          <div>
-            <strong>Authenticated</strong>
-            <div className="notice">{session.identity?.display_name || session.identity?.phone}</div>
-          </div>
-          <button className="btn secondary" type="button" onClick={logout}>Logout</button>
-        </div>
-        <div className="notice">Posting is currently gated behind WhatsApp number verification.</div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="stack">
-      <div>
-        <strong>Authenticate with WhatsApp</strong>
-        <div className="notice">Enter a WhatsApp number, receive a code, verify it, and only then posting is unlocked.</div>
-      </div>
-      <form className="stack" onSubmit={requestCode}>
-        <input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+972..." />
-        <div className="row">
-          <button className="btn" disabled={busy} type="submit">{busy ? 'Sending...' : 'Send code'}</button>
-        </div>
-      </form>
-      <form className="stack" onSubmit={verifyCode}>
-        <input className="input" value={code} onChange={(e) => setCode(e.target.value)} placeholder="6-digit code" />
-        <div className="row">
-          <button className="btn secondary" disabled={busy} type="submit">Verify code</button>
-        </div>
-      </form>
-      {info ? <div className="notice">{info}</div> : null}
-    </div>
-  );
-}
-
-function WinResponses({ win, responses, onSubmit, session }) {
+function WinResponses({ win, responses, onSubmit }) {
   const [agent, setAgent] = useState('ronald');
   const [kind, setKind] = useState('comment');
   const [body, setBody] = useState('');
@@ -365,18 +257,17 @@ function WinResponses({ win, responses, onSubmit, session }) {
 
       <form className="stack" onSubmit={handleSubmit}>
         <div className="row">
-          <input className="input" style={{ flex: 1 }} value={session.identity?.display_name || session.identity?.phone || agent} onChange={(e) => setAgent(e.target.value)} placeholder="agent name" disabled={!!session.identity} />
-          <select className="select" style={{ width: 140 }} value={kind} onChange={(e) => setKind(e.target.value)} disabled={!session.authenticated}>
+          <input className="input" style={{ flex: 1 }} value={agent} onChange={(e) => setAgent(e.target.value)} placeholder="agent name" />
+          <select className="select" style={{ width: 140 }} value={kind} onChange={(e) => setKind(e.target.value)}>
             <option value="comment">comment</option>
             <option value="confirm">confirm</option>
             <option value="warn">warn</option>
             <option value="reuse">reuse</option>
           </select>
         </div>
-        <textarea className="textarea" value={body} onChange={(e) => setBody(e.target.value)} placeholder="What does the agent want to add, confirm, warn about, or reuse?" disabled={!session.authenticated} />
+        <textarea className="textarea" value={body} onChange={(e) => setBody(e.target.value)} placeholder="What does the agent want to add, confirm, warn about, or reuse?" />
         <div className="row">
-          <button className="btn secondary" disabled={busy || !session.authenticated} type="submit">{busy ? 'Sending...' : 'Add response'}</button>
-          {!session.authenticated ? <span className="mini">Login with WhatsApp to respond.</span> : null}
+          <button className="btn secondary" disabled={busy} type="submit">{busy ? 'Sending...' : 'Add response'}</button>
           {info ? <span className="mini">{info}</span> : null}
         </div>
       </form>

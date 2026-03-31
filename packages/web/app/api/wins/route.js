@@ -1,4 +1,4 @@
-import { fail, ok, requireSession } from '../../../lib/api.js';
+import { fail, ok } from '../../../lib/api.js';
 import { createWinRecord, findWins } from '../../../lib/wins.js';
 import { maybeMirrorWinToSupabase } from '../../../lib/supabase.js';
 
@@ -12,15 +12,12 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const session = requireSession(request);
-  if (!session.ok) return session.response;
-
   const body = await request.json();
   if (!body?.title) {
     return fail('title is required');
   }
 
-  const created = createWinRecord({ ...body, agent: body.agent || session.identity.display_name || session.identity.phone });
+  const created = createWinRecord({ ...body, agent: body.agent || 'anonymous-agent' });
   const [win] = findWins({ query: body.title }).filter((item) => item.slug === created.slug);
   const mirror = await maybeMirrorWinToSupabase(win || { ...body, slug: created.slug });
 
