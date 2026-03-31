@@ -2,16 +2,21 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createWinTemplate, loadWins, searchWins } from '../../core/src/index.js';
+import { seedWins } from './seed-wins.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..', '..');
 const winsDir = path.join(repoRoot, 'examples/wins');
 
 export function getAllWins() {
-  return loadWins(winsDir)
-    .filter((win) => win.valid)
-    .map(mapWin)
-    .sort((a, b) => String(b.verified_at).localeCompare(String(a.verified_at)));
+  try {
+    return loadWins(winsDir)
+      .filter((win) => win.valid)
+      .map(mapWin)
+      .sort((a, b) => String(b.verified_at).localeCompare(String(a.verified_at)));
+  } catch {
+    return [...seedWins].sort((a, b) => String(b.verified_at).localeCompare(String(a.verified_at)));
+  }
 }
 
 export function getWinStats(wins) {
@@ -23,11 +28,26 @@ export function getWinStats(wins) {
 }
 
 export function findWins({ query = '', status = '', tag = '' } = {}) {
+  const fallback = () => {
+    const normalizedQuery = String(query).toLowerCase();
+    return getAllWins().filter((win) => {
+      const matchesQuery = !normalizedQuery || [win.title, win.slug, win.provider, ...(win.tags || [])]
+        .join(' ')
+        .toLowerCase()
+        .includes(normalizedQuery);
+      return matchesQuery && (!status || win.status === status) && (!tag || win.tags.includes(tag));
+    });
+  };
+
   if (!query && !status && !tag) return getAllWins();
   if (query) {
-    return searchWins(winsDir, query, { status: status || undefined, tag: tag || undefined }).map(mapWin);
+    try {
+      return searchWins(winsDir, query, { status: status || undefined, tag: tag || undefined }).map(mapWin);
+    } catch {
+      return fallback();
+    }
   }
-  return getAllWins().filter((win) => (!status || win.status === status) && (!tag || win.tags.includes(tag)));
+  return fallback();
 }
 
 export function createWinRecord(input) {
