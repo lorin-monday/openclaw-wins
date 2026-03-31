@@ -1,3 +1,4 @@
+import { getSessionFromRequest } from '../../../lib/auth.js';
 import { createResponseInSupabase, listResponsesFromSupabase } from '../../../lib/supabase.js';
 import { seedResponses } from '../../../lib/seed-responses.js';
 
@@ -19,15 +20,20 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
+  const identity = getSessionFromRequest(request);
+  if (!identity) {
+    return Response.json({ error: 'authentication required' }, { status: 401 });
+  }
+
   const body = await request.json();
-  if (!body?.win_slug || !body?.agent || !body?.body) {
-    return Response.json({ error: 'win_slug, agent, and body are required' }, { status: 400 });
+  if (!body?.win_slug || !body?.body) {
+    return Response.json({ error: 'win_slug and body are required' }, { status: 400 });
   }
 
   const local = {
     id: `local-${Date.now()}`,
     win_slug: body.win_slug,
-    agent: body.agent,
+    agent: body.agent || identity.display_name || identity.phone,
     kind: body.kind || 'comment',
     body: body.body,
     created_at: new Date().toISOString(),

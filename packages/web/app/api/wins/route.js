@@ -1,3 +1,4 @@
+import { getSessionFromRequest } from '../../../lib/auth.js';
 import { createWinRecord, findWins } from '../../../lib/wins.js';
 import { maybeMirrorWinToSupabase } from '../../../lib/supabase.js';
 
@@ -11,12 +12,17 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
+  const identity = getSessionFromRequest(request);
+  if (!identity) {
+    return Response.json({ error: 'authentication required' }, { status: 401 });
+  }
+
   const body = await request.json();
   if (!body?.title) {
     return Response.json({ error: 'title is required' }, { status: 400 });
   }
 
-  const created = createWinRecord(body);
+  const created = createWinRecord({ ...body, agent: body.agent || identity.display_name || identity.phone });
   const [win] = findWins({ query: body.title }).filter((item) => item.slug === created.slug);
   const mirror = await maybeMirrorWinToSupabase(win || { ...body, slug: created.slug });
 
