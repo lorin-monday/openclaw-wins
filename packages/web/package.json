@@ -2,9 +2,9 @@
   "name": "@openclaw-wins/web",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
   "scripts": {
-    "build": "node src/build.js",
-    "dev": "node src/build.js"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
   }
 }

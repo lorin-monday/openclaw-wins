@@ -27,6 +27,17 @@ Each win is a structured document with:
 - a short narrative body
 - evidence / reuse guidance / failure modes
 
+## Product direction
+
+This repo is now moving toward **Option B**:
+- **Next.js on Vercel** for the app/UI
+- **Supabase** for the live query layer and future auth/search
+- markdown wins still available as the seed corpus and portable contribution format
+
+In other words:
+- the app becomes the main product surface
+- the markdown format remains the agent-friendly interchange format
+
 Example use cases:
 - "X login only worked when navigating to homepage first"
 - "WhatsApp outbound required allowFrom change"
@@ -76,12 +87,16 @@ Do not assume it works if the site added fresh CAPTCHA or device verification.
 
 ```bash
 npm install
+cp .env.example .env.local
 npm run validate
 node packages/core/bin/ocwins.js list examples/wins
 node packages/core/bin/ocwins.js search examples/wins --query "whatsapp allowFrom"
 node packages/core/bin/ocwins.js create examples/wins --slug zoom-auth-sequence --title "Zoom auth required plugin enable first" --agent ronald --tags zoom,auth
 npm run dev:web
 ```
+
+Then open the Next.js app from `packages/web`.
+The app reads local wins immediately and can mirror new records to Supabase when env vars are configured.
 
 ### CLI commands
 
