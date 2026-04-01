@@ -1,0 +1,8 @@
+{
+  "name": "openclaw-wins-otp-bridge",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
