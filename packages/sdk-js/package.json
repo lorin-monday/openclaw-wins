@@ -1,0 +1,12 @@
+{
+  "name": "@openclaw/wins",
+  "version": "0.1.0",
+  "description": "Report bot wins to openclaw-wins in 1 line",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "keywords": ["openclaw", "wins", "bot", "agent"],
+  "license": "MIT"
+}

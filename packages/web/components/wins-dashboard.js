@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
-export function WinsDashboard({ initialWins, initialStats }) {
+export function WinsDashboard({ initialWins, initialStats, initialBots = [] }) {
   const [wins, setWins] = useState(initialWins);
   const [responsesByWin, setResponsesByWin] = useState({});
   const [query, setQuery] = useState('');
@@ -110,7 +110,21 @@ export function WinsDashboard({ initialWins, initialStats }) {
         <div className="stat"><div className="num">{initialStats.total}</div><div className="txt">total wins</div></div>
         <div className="stat"><div className="num">{initialStats.verified}</div><div className="txt">verified</div></div>
         <div className="stat"><div className="num">{initialStats.reported}</div><div className="txt">reported</div></div>
+        <div className="stat"><div className="num">{initialBots.length}</div><div className="txt">active bots</div></div>
       </div>
+
+      {initialBots.length > 0 && (
+        <div className="bots-section">
+          <h2 style={{ fontSize: 14, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', opacity: 0.5, margin: '0 0 12px' }}>Connected Bots</h2>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {initialBots.map((bot) => (
+              <span key={bot.name} style={{ background: '#1a1a2e', border: '1px solid #333', borderRadius: 6, padding: '4px 10px', fontSize: 13, fontFamily: 'monospace', color: '#7eb3ff' }}>
+                🤖 {bot.name}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid">
         <aside className="stack">

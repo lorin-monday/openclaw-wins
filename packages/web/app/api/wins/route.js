@@ -1,4 +1,5 @@
 import { fail, ok } from '../../../lib/api.js';
+import { authenticateBot } from '../../../lib/bot-auth.js';
 import { createWinRecord, findWins } from '../../../lib/wins.js';
 import { maybeMirrorWinToSupabase } from '../../../lib/supabase.js';
 
@@ -12,14 +13,22 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
+  // Authenticate bot
+  const auth = authenticateBot(request);
+  if (!auth.ok) {
+    return fail(`Unauthorized: ${auth.reason}`, 401);
+  }
+
   const body = await request.json();
   if (!body?.title) {
     return fail('title is required');
   }
 
-  const created = createWinRecord({ ...body, agent: body.agent || 'anonymous-agent' });
+  // Bot name from API key overrides any passed agent field
+  const agent = auth.botName;
+  const created = createWinRecord({ ...body, agent });
   const [win] = findWins({ query: body.title }).filter((item) => item.slug === created.slug);
-  const mirror = await maybeMirrorWinToSupabase(win || { ...body, slug: created.slug });
+  const mirror = await maybeMirrorWinToSupabase(win || { ...body, slug: created.slug, agent });
 
-  return ok({ created, mirror, win });
+  return ok({ created, mirror, win, agent });
 }
